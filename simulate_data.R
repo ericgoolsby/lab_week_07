@@ -31,3 +31,22 @@ n <- nrow(X)
 
 # cols = rainbow gradient of colors for visualization
 cols <- rainbow(round(n*1.5))[1:n]
+
+
+
+set.seed(42)
+defense <- c(rnorm(50,mean=-2),rnorm(50,mean=0),rnorm(50,mean=2))
+defense <- defense - min(defense)
+baseline_herbivory <- rnorm(150,sd=1)
+baseline_herbivory <- baseline_herbivory - mean(baseline_herbivory)
+herbivory <- baseline_herbivory - defense + rnorm(150)
+herbivory <- herbivory - min(herbivory)
+baseline_growth <- c(rnorm(75,mean = -2),rnorm(75,mean=2))
+baseline_growth <- baseline_growth - min(baseline_growth)
+TYPE <- character(length(defense))
+growth <- baseline_growth - herbivory - defense
+growth <- growth - min(growth)
+fitness <- growth - herbivory - defense
+TYPE[growth < 7 & defense > 3 & fitness < -4] <- "Perennial"
+TYPE[!(growth < 7 & defense > 3 & fitness < -4)] <- "Annual"
+sim_plant <- data.frame(defense,herbivory,growth,fitness,TYPE)

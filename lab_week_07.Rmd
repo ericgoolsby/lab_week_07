@@ -251,11 +251,7 @@ scatter3d(x = data$compound_76,y = data$compound_369,z = data$number_compounds,
           zlab = "Number Compounds")
 ```
 
+
 ```{r}
-autoplot(compounds_pca,data = compounds,loadings = TRUE,loadings.label = TRUE) +
-  geom_mark_ellipse(mapping = aes(fill = growth_form),alpha=.3,expand = unit(0.5,'mm')) + 
-  geom_point(mapping = aes(color = growth_form),size = 3) +
-  scale_fill_manual(values = cbPalette) + 
-  scale_color_manual(values = cbPalette) + 
-  theme_classic()
+head(sim_plant)
 ```
