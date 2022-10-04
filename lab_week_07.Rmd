@@ -1,0 +1,261 @@
+---
+title: "PCA Introduction"
+author: ""
+date: "2022-10-04"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, message = FALSE,warning = FALSE}
+knitr::opts_chunk$set(echo = TRUE,message = FALSE,warning = FALSE)
+library(readxl)
+library(tidyverse)
+library(janitor)
+library(rgl)
+library(car)
+library(tidyverse)
+library(ggfortify)
+library(ggforce)
+knitr::knit_hooks$set(webgl = hook_webgl)
+cbPalette <- c("#E69F00", "#009E73", "#0072B2", "#CC79A7") # custom color-blind friendly palette
+```
+
+You'll need to run the following code (in the console, *not* in RMarkdown):
+
+```
+install.packages("rgl")
+install.packages("car")
+install.packages("ggfortify")
+install.packages("ggforce")
+install.packages("MASS")
+```
+
+Then run the R script `simulate_data.R` to simulate data for this lab exercise.
+
+```{r}
+source("simulate_data.R")
+```
+
+This script created a variable named `X` with 3 plant trait columns: Nitrogen (`Nitrogen`), leaf mass per area (`LMA`), and Water Content (`Water`):
+
+```{r}
+head(X)
+```
+
+The data are also stored in a data frame called `dat`, but `dat` also has a column named `Type`, which cateogrizes plants as "Dessert Annual", "Dessert Perennial", "Temperate Annual", or "Temperate Perennial".
+
+```{r}
+head(dat)
+```
+
+Let's see how the variables are correlated with one another:
+
+```{r}
+cor(X) # r
+cor(X)^2 # r-squared
+```
+
+We see that Nitrogen and LMA are strongly negatively correlated:
+
+```{r}
+dat %>% 
+  ggplot(mapping=aes(x = Nitrogen,y = LMA,color = Type)) + 
+  geom_point(color = cols,size = 3) + 
+  theme_classic()
+```
+
+Next we visualize Nitrogen vs Water, which has a very weak correlation.
+
+```{r}
+dat %>% 
+  ggplot(mapping=aes(x = Nitrogen,y = Water,color = Type)) +
+  geom_point(color = cols,size = 3) + 
+  theme_classic()
+```
+
+Finally, visualize LMA vs Water Content, which is moderately positively correlated.
+
+```{r}
+dat %>% 
+  ggplot(mapping=aes(x = LMA,y = Water,color = Type)) + 
+  geom_point(color = cols,size = 3) + 
+  theme_classic()
+```
+
+We can view the 3 traits simultaneously in a 3D plot:
+
+```{r webgl=TRUE}
+scatter3d(x = X[,"Nitrogen"],y = X[,"LMA"],z = X[,"Water"],
+          point.col = cols,
+          surface.alpha=.00,
+          residuals = FALSE,
+          sphere.size=1.5,
+          fogtype="none",
+          xlab = "Nitrogen",
+          ylab = "LMA",
+          zlab = "Water")
+```
+
+## Principal Component Analysis (PCA)
+
+Because these traits are correlated, there is redundant information: if you know Nitrogen, you have a pretty good idea of LMA, and if you know LMA, you have a decent idea of Water Content.
+
+In other words, we should be able to summarize an individual plant's Nitrogen content, LMA, and Water Content with just two variables. Principal component analysis (PCA) is a common way to summarize the traits of several variables with a small number of summary variables.
+
+The following code runs PCA on the data `X`, and then prints the summarized results.
+
+We see the first principal component (PC1) explains nearly three-quarters of the variation in the data! PC2 explains another quarter, and PC3 doesn't tell us much of anything.
+
+```{r}
+pca <- prcomp(X,center = TRUE,scale. = TRUE)
+summary(pca)
+```
+
+We can also see how correlated (r and R^2) the traits are with each PC:
+
+```{r}
+cor(X,pca$x) # r
+cor(X,pca$x)^2 # r-squared
+```
+
+Visualize PC1 and PC2 (together they convey almost all of the information about the 3 traits):
+
+```{r}
+autoplot(object = pca,
+         data = dat,
+         x = 1,
+         y = 2,
+         loadings = TRUE,
+         loadings.label = TRUE) + 
+  geom_point(color = cols,size = 3) + 
+  theme_classic()
+```
+
+Visualizing PC1 and PC3 doesn't provide any new information.
+
+```{r}
+autoplot(object = pca,
+         data = dat,
+         x = 1,
+         y = 3,
+         loadings = TRUE,
+         loadings.label = TRUE) + 
+  geom_point(color = cols,size = 3) + 
+  theme_classic()
+```
+
+Nor does visualizing PC2 and PC3.
+
+```{r}
+autoplot(object = pca,
+         data = dat,
+         x = 2,
+         y = 3,
+         loadings = TRUE,
+         loadings.label = TRUE) + 
+  geom_point(color = cols,size = 3) + 
+  theme_classic()
+```
+
+## Visualing by groups
+
+Now let's look at the data in context of their habitat. First, Nitrogen vs Water Content:
+
+```{r}
+dat %>% ggplot(mapping=aes(x = Nitrogen,y = Water,color = Type)) +   geom_mark_ellipse(mapping = aes(fill = Type),expand = unit(0.5,'mm')) + 
+  geom_point(mapping = aes(color = Type),size = 3) +
+  scale_fill_manual(values = cbPalette) + 
+  scale_color_manual(values = cbPalette) + 
+  theme_classic()
+```
+
+Nitrogen vs LMA:
+
+```{r}
+dat %>% ggplot(mapping=aes(x = Nitrogen,y = LMA,color = Type)) +   geom_mark_ellipse(mapping = aes(fill = Type),expand = unit(0.5,'mm')) + 
+  geom_point(mapping = aes(color = Type),size = 3) +
+  scale_fill_manual(values = cbPalette) + 
+  scale_color_manual(values = cbPalette) + 
+  theme_classic()
+```
+
+LMA vs Water:
+
+```{r}
+dat %>% ggplot(mapping=aes(x = LMA,y = Water,color = Type)) +   geom_mark_ellipse(mapping = aes(fill = Type),expand = unit(0.5,'mm')) + 
+  geom_point(mapping = aes(color = Type),size = 3) +
+  scale_fill_manual(values = cbPalette) + 
+  scale_color_manual(values = cbPalette) + 
+  theme_classic()
+```
+
+3D plot:
+
+```{r webgl=TRUE}
+scatter3d(x = X[,"Nitrogen"],y = X[,"LMA"],z = X[,"Water"],
+          point.col = cbPalette[dat$Type],
+          surface.alpha=.00,
+          residuals = FALSE,
+          sphere.size=1.5,
+          fogtype="none",
+          xlab = "Nitrogen",
+          ylab = "LMA",
+          zlab = "Water")
+```
+
+PCA with groups:
+
+```{r}
+autoplot(pca,data = dat,loadings = TRUE,loadings.label = TRUE) +
+  geom_mark_ellipse(mapping = aes(fill = Type),expand = unit(0.5,'mm')) + 
+  geom_point(mapping = aes(color = Type),size = 3) +
+  scale_fill_manual(values = cbPalette) + 
+  scale_color_manual(values = cbPalette) + 
+  theme_classic()
+```
+
+## Sunflower HPLC Data
+
+```{r}
+library(readxl)
+library(tidyverse)
+library(janitor)
+
+data <- read_excel("data/Mason_S1.xlsx", 
+    sheet = "Population_LSMeans", skip = 2) %>% janitor::clean_names()
+data$growth_form <- as.factor(data$growth_form)
+data <- data %>% filter(complete.cases(data %>% select(starts_with("Compound"))))
+data <- data %>% mutate(across(starts_with("Compound"),function(X) X))
+
+compounds <- data %>% 
+  select(species,growth_form,number_compounds,starts_with("Compound"))
+compounds_pca <- prcomp(x = compounds %>% select(where(is_double)),center=TRUE,scale=TRUE)
+
+# which PCs are potentially useful?
+round(summary(compounds_pca)$importance,2)
+
+# what compounds are most correlated with the most informative PCs?
+round(cor(compounds %>% select(where(is_double)),compounds_pca$x)^2,2)[,1:4]
+```
+
+```{r}
+scatter3d(x = data$compound_76,y = data$compound_369,z = data$number_compounds,
+          point.col = cbPalette[compounds$growth_form],
+          surface.alpha=.00,
+          residuals = FALSE,
+          sphere.size=1.5,
+          fogtype="none",
+          xlab = "Compound 76",
+          ylab = "Compound 369",
+          zlab = "Number Compounds")
+```
+
+```{r}
+autoplot(compounds_pca,data = compounds,loadings = TRUE,loadings.label = TRUE) +
+  geom_mark_ellipse(mapping = aes(fill = growth_form),alpha=.3,expand = unit(0.5,'mm')) + 
+  geom_point(mapping = aes(color = growth_form),size = 3) +
+  scale_fill_manual(values = cbPalette) + 
+  scale_color_manual(values = cbPalette) + 
+  theme_classic()
+```
